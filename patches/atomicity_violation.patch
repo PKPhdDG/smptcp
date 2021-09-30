@@ -1,0 +1,106 @@
+diff --git a/channels.c b/channels.c
+index e6f1587..4bfd48c 100644
+--- a/channels.c
++++ b/channels.c
+@@ -1,5 +1,7 @@
+ #include "channels.h"
+ 
++int counter = 0;
++
+ void *send_channel(void *arg)
+ {
+ 	int32_t i;
+@@ -232,6 +234,10 @@ void *send_channel(void *arg)
+ 
+ void *recv_channel(void *arg)
+ {
++
++    pthread_mutex_lock(&counter_l);
++    ++counter;
++    pthread_mutex_unlock(&counter_l);
+ 	int32_t channel_id;
+ 	char *recv_req_data;
+ 	struct mptcp_header *recv_req_header;
+@@ -377,6 +383,9 @@ void *recv_channel(void *arg)
+ 		pthread_mutex_unlock(&sys_l);
+ 	}
+ 
++    pthread_mutex_lock(&counter_l);
++    printf("%d", counter);
++    pthread_mutex_unlock(&counter_l);
+ 	//cleanup and exit
+ 	free(recv_req_packet);
+ 	free(recv_req_header);
+diff --git a/global.h b/global.h
+index c274eed..06b28f1 100644
+--- a/global.h
++++ b/global.h
+@@ -58,6 +58,7 @@ byte_stats_t *channel_stats;
+ pthread_mutex_t transmission_end_l;
+ pthread_mutex_t log_l;
+ pthread_mutex_t sys_l;
++pthread_mutex_t counter_l;
+ int32_t rwnd;
+ int32_t cwnd_total;
+ channel_t *channel_wnd;
+diff --git a/patches/atomicity_violation.patch b/patches/atomicity_violation.patch
+index e019c52..e69de29 100644
+--- a/patches/atomicity_violation.patch
++++ b/patches/atomicity_violation.patch
+@@ -1,56 +0,0 @@
+-diff --git a/channels.c b/channels.c
+-index e6f1587..8791d78 100644
+---- a/channels.c
+-+++ b/channels.c
+-@@ -1,7 +1,18 @@
+- #include "channels.h"
+- 
+-+static int dummy_variable = 0;
+-+static void a_action_on_dummy_variable(int var) {
+-+    var += 1;
+-+}
+-+static void b_action_on_dummy_variable(int var) {
+-+    var *= 99;
+-+}
+-+
+- void *send_channel(void *arg)
+- {
+-+    pthread_mutex_lock(&dummy_l);
+-+    a_action_on_dummy_variable(dummy_variable);
+-+    pthread_mutex_unlock(&dummy_l);
+- 	int32_t i;
+- 	int32_t status;
+- 	int32_t channel_id = 0;
+-@@ -140,6 +151,10 @@ void *send_channel(void *arg)
+- 			}
+- 		}
+- 
+-+        pthread_mutex_lock(&dummy_l);
+-+        b_action_on_dummy_variable(dummy_variable);
+-+        pthread_mutex_unlock(&dummy_l);
+-+
+- 		//run over state machine to determine whether or not to send a packet and how to update state variables
+- 		switch(system_state)
+- 		{
+-@@ -377,6 +392,9 @@ void *recv_channel(void *arg)
+- 		pthread_mutex_unlock(&sys_l);
+- 	}
+- 
+-+    pthread_mutex_lock(&dummy_l);
+-+    a_action_on_dummy_variable(dummy_variable);
+-+    pthread_mutex_unlock(&dummy_l);
+- 	//cleanup and exit
+- 	free(recv_req_packet);
+- 	free(recv_req_header);
+-diff --git a/global.h b/global.h
+-index c274eed..a467709 100644
+---- a/global.h
+-+++ b/global.h
+-@@ -58,6 +58,7 @@ byte_stats_t *channel_stats;
+- pthread_mutex_t transmission_end_l;
+- pthread_mutex_t log_l;
+- pthread_mutex_t sys_l;
+-+pthread_mutex_t dummy_l;
+- int32_t rwnd;
+- int32_t cwnd_total;
+- channel_t *channel_wnd;
