@@ -1,0 +1,43 @@
+diff --git a/channels.c b/channels.c
+index e6f1587..693749f 100644
+--- a/channels.c
++++ b/channels.c
+@@ -86,10 +86,12 @@ void *send_channel(void *arg)
+ 	while(transmission_end_sig == 0)
+ 	{
+ 		pthread_mutex_lock(&sys_l);
++		pthread_mutex_lock(&acc_l);
+ 		//make sure transmission didn't finish while waiting to obtain the lock
+ 		if(transmission_end_sig != 0)
+ 		{
+ 			pthread_mutex_unlock(&sys_l);
++			pthread_mutex_unlock(&acc_l);
+ 			break;
+ 		}
+ 
+@@ -265,11 +267,13 @@ void *recv_channel(void *arg)
+ 		(*recv_req_packet->header).ack_num = 0;
+ 		mp_recv(sock_hndls[channel_id], recv_req_packet, 0, 0);
+ 
++		pthread_mutex_lock(&acc_l);
+ 		pthread_mutex_lock(&sys_l);
+ 		//make sure transmission didn't finish while waiting to obtain the lock
+ 		if(transmission_end_sig != 0)
+ 		{
+ 			pthread_mutex_unlock(&sys_l);
++			pthread_mutex_unlock(&acc_l);
+ 			break;
+ 		}
+ 
+diff --git a/global.h b/global.h
+index c274eed..9d357c6 100644
+--- a/global.h
++++ b/global.h
+@@ -58,6 +58,7 @@ byte_stats_t *channel_stats;
+ pthread_mutex_t transmission_end_l;
+ pthread_mutex_t log_l;
+ pthread_mutex_t sys_l;
++pthread_mutex_t acc_l;
+ int32_t rwnd;
+ int32_t cwnd_total;
+ channel_t *channel_wnd;
