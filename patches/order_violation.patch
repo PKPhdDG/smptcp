@@ -1,38 +1,29 @@
 diff --git a/channels.c b/channels.c
-index e6f1587..96c4576 100644
+index e6f1587..af546e3 100644
 --- a/channels.c
 +++ b/channels.c
-@@ -1,7 +1,13 @@
+@@ -1,5 +1,7 @@
  #include "channels.h"
  
-+int counter = 0;
++volatile int32_t *t;
 +
  void *send_channel(void *arg)
  {
-+    pthread_mutex_lock(&counter_l);
-+    ++counter;
-+    pthread_mutex_unlock(&counter_l);
-+    printf("%d", counter);
  	int32_t i;
- 	int32_t status;
- 	int32_t channel_id = 0;
-@@ -232,6 +238,7 @@ void *send_channel(void *arg)
+@@ -26,6 +28,7 @@ void *send_channel(void *arg)
+ 	clnt_addr = args->clnt_addr;
+ 	free(args);
  
- void *recv_channel(void *arg)
- {
-+    ++counter;
- 	int32_t channel_id;
- 	char *recv_req_data;
- 	struct mptcp_header *recv_req_header;
-diff --git a/global.h b/global.h
-index c274eed..06b28f1 100644
---- a/global.h
-+++ b/global.h
-@@ -58,6 +58,7 @@ byte_stats_t *channel_stats;
- pthread_mutex_t transmission_end_l;
- pthread_mutex_t log_l;
- pthread_mutex_t sys_l;
-+pthread_mutex_t counter_l;
- int32_t rwnd;
- int32_t cwnd_total;
- channel_t *channel_wnd;
++    printf("%d", *t);
+ 	//initialize channel_stats
+ 	for(i = 0; i < num_interfaces; i++)
+ 	{
+@@ -381,6 +384,7 @@ void *recv_channel(void *arg)
+ 	free(recv_req_packet);
+ 	free(recv_req_header);
+ 	free(recv_req_data);
++    t = (int32_t*)malloc(sizeof(int32_t));
+ 
+ 	pthread_exit((void *)NULL);
+ }
+\ No newline at end of file
